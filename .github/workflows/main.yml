@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      DEPLOY_PATH: /var/www/rshelopal.site/public_html/
+      DEPLOY_PATH: /var/www/rshelopal.site
 
     steps:
       - name: Checkout repository
