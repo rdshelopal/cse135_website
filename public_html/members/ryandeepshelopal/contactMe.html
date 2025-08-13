@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!--webpage adapts to device size-->
+    <title>Contact Me</title>
+    <link href="styles.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <nav id="navigation-bar">
+            <button onclick="location.href='/index.html'" id="homebutton"><strong><span>Ryandeep Shelopal</span></strong></button>  <!--Will use name as "Home" Button/add css emphasis-->
+            <ul class="navbar-links">
+                <li><a href="resume.html" alt="resume">Resume</a></li>
+                <li><a href="portfolio.html" alt="portfolio">Portfolio</a></li>
+                <li><a href="answersToInterviewQuestions.html" alt="answersToInterviewQuestions">Answers to Your Interview Questions</a>
+                <li><a href="contactMe.html" alt="contact">Contact Me</a></li>
+            </ul>
+            <button id="theme-toggle"> 🌞 / 🌜</button>
+        </nav>
+    </header>
+    <main>
+        <section id="contact">
+            <h2>Contact Form</h2>
+            <address>
+                Email: <a href="rdshelopal@gmail.com">rdshelopal@gmail.com</a><br>
+                GitHub: <a href="https://github.com/rdshelopal">GitHub</a><br>
+                LinkedIn: <a href="https://www.linkedin.com/in/ryan-shelopal/">LinkedIn</a>
+            </address>
+        </section>
+
+        <form id="contactForm" action="https://httpbin.org/post" method="POST">
+            <fieldset id="nameandemail">
+                <div>
+                    <label for="full_name_field"></label>Name:</label><br>
+                    <input type="text" name="name"  placeholder="YourFullName" required minlength="2" maxlength="50"><br>
+                </div>
+                <div>
+                    <label for="email_field" >Email:</label><br>
+                    <input type="email" name="email" placeholder="YourEmail" required><br>
+                 </div>
+            </fieldset>
+
+            <fieldset id="comments">
+                <div>
+                    <label for="comments" >Comments:</label><br>
+                    <textarea name="comments" rows="20" placeholder="YourComments" required minlength="5" maxlength="1000"></textarea><br>
+                </div>
+            </fieldset>
+
+            <!-- Hidden Field for Bot Detection -->
+            <input type="hidden" name="possible_bot" value="true">
+            
+
+            <button type="submit" id="submitBtn" name="submitBtn">Submit!</button><!--submit button-->
+            
+
+        </form>
+    </main>
+    <footer>
+        <br>
+        <p>&copy; 2025 Ryandeep Shelopal</p>
+    </footer>
+    <script src="themes.js"></script>
+    
+</body>
+</html>

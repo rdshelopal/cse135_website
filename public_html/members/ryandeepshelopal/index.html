@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"> <!-- characters used from a user's keyboard-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!--webpage adapts to device size-->
+    <link rel="icon" href="favicon.ico" type="image/x-icon"> <!--Add an icon later in development-->
+    <title>Ryan's Portfolio</title> <!--URL name-->
+    <link href="styles.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <nav id="navigation-bar">
+            <button onclick="location.href='/index.html'" id="homebutton"><strong><span>Ryandeep Shelopal</span></strong></button>  <!--Will use name as "Home" Button/add css emphasis-->
+            <ul class="navbar-links">
+                <li><a href="resume.html" alt="resume">Resume</a></li>
+                <li><a href="portfolio.html" alt="portfolio">Portfolio</a></li>
+                <li><a href="answersToInterviewQuestions.html" alt="answersToInterviewQuestions">Answers to Your Interview Questions</a>
+                <li><a href="contactMe.html" alt="contact">Contact Me</a></li>
+            </ul>
+            <button id="theme-toggle"> 🌞 / 🌜</button>
+        </nav>
+        
+    </header>
+    <main>
+        <section>
+            <header>  
+                <h2 id="title">Aspiring Software Engineer</h2>   
+            </header>
+            <main id="contentblocks">
+                <picture>
+                    <img id="headshot" src="headshot.jpg" alt="Headshot">
+                </picture>
+                
+                <section id="textblocks">
+                    <h3><strong>2025 Computer Engineering B.S. Graduate from the <em>University of California, San Diego</em>, seeking opportunities in client-side web development!</strong></h3>
+                    <br>
+                    <p>Hi, I’m Ryan — a passionate developer with a background in software development, embedded systems, and machine learning. This portfolio showcases the evolution of my technical journey, from low-level hardware optimization to intelligent systems and, most recently, my deep dive into frontend web development. I’m driven by the challenge of creating intuitive, high-performing user experiences and constantly pushing the boundaries of what I can build. Feel free to explore my work — and don’t hesitate to reach out!</p>
+                    <br>
+                    <div id="extrainformation">
+                        <aside> <!--Used an aside here because this isnt the utmost important content to a recruiter-->
+                            <h4>Hobbies and Interests</h3>
+                            <ul>
+                                <li>Staying active at the gym.</li>
+                                <li>Listening to new music.</li>
+                                <li>Trying new foods from different cultures.</li>
+                                <li>StreetFighter6 Player</li>
+                            </ul>
+                        </aside>
+                        <br>
+                        <aside>
+                            <ul>
+                                <li>Email:rdshelopal@gmail.com </li>
+                                <li>Phone: (510)766-8997</li>
+                                <li>Birthday: June 1, 2000</li>
+                                <li>Location: La Jolla, San Diego</li>
+                            </ul>
+                        </aside>
+                    </div>
+                </section>
+            </main>
+            
+        </section>
+
+    </main>
+
+    <footer>
+        <p>I built this site using <abbr title="HyperText Markup Language">HTML</abbr> and <abbr title="Cascaded Style Sheets">CSS</abbr></p>
+        <p>&copy; 2025 Ryandeep Shelopal</p>
+
+    </footer>
+    <script src="themes.js"></script>
+</body>
+</html>

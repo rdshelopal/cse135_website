@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!--webpage adapts to device size-->
+    <title>Contact Me</title>
+    <link href="styles.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+       <nav id="navigation-bar">
+            <button onclick="location.href='/index.html'" id="homebutton"><strong><span>Ryandeep Shelopal</span></strong></button>  <!--Will use name as "Home" Button/add css emphasis-->
+            <ul class="navbar-links">
+                <li><a href="resume.html" alt="resume">Resume</a></li>
+                <li><a href="portfolio.html" alt="portfolio">Portfolio</a></li>
+                <li><a href="answersToInterviewQuestions.html" alt="answersToInterviewQuestions">Answers to Your Interview Questions</a>
+                <li><a href="contactMe.html" alt="contact">Contact Me</a></li>
+            </ul>
+            <button id="theme-toggle"> 🌞 / 🌜</button>
+        </nav>
+    </header>
+    <main>
+        <section id="contact">
+            <h2>Contact Form</h2>
+            <address>
+                Email: <a href="rdshelopal@gmail.com">rdshelopal@gmail.com</a><br>
+                GitHub: <a href="https://github.com/rdshelopal">GitHub</a><br>
+                LinkedIn: <a href="https://www.linkedin.com/in/ryan-shelopal/">LinkedIn</a>
+            </address>
+        </section>
+
+        <form id="contactForm" action="https://httpbin.org/post" method="POST">
+            <fieldset id="nameandemail">
+                <div>
+                    <label for="full_name_field"></label>Name:</label><br>
+                    <input type="text" name="name"  placeholder="YourFullName" required minlength="2" maxlength="50"><br>
+                </div>
+                <div>
+                    <label for="email_field" >Email:</label><br>
+                    <input type="email" name="email" placeholder="YourEmail" required><br>
+                 </div>
+            </fieldset>
+
+            <fieldset id="comments">
+                <div>
+                    <label for="comments" >Comments:</label><br>
+                    <textarea name="comments" rows="20" placeholder="YourComments" required minlength="5" maxlength="300"></textarea><br>
+                    <p id="charCount">300 characters left</p>
+                    <p id="errorMsg" style="color:red; display:none;"></p>
+                    <input type="hidden" name="form-errors" id="formErrors">
+                </div>
+            </fieldset>
+
+            <!-- Hidden Field for Bot Detection -->
+            <input type="hidden" name="possible_bot" value="true">
+            
+
+            <button type="submit" id="submitBtn" name="submitBtn">Submit!</button><!--submit button-->
+            
+
+        </form>
+    </main>
+    <footer>
+        <br>
+        <p>&copy; 2025 Ryandeep Shelopal</p>
+    </footer>
+
+ 
+
+   <script>
+document.addEventListener("DOMContentLoaded", function () {
+    //Character count allowed in comments
+    const comments = document.querySelector('textarea[name="comments"]');
+    const charCount = document.getElementById("charCount");
+    const maxLength = parseInt(comments.getAttribute("maxlength"));
+
+    comments.addEventListener("input", function () {
+        const currentLength = comments.value.length;
+        const remaining = maxLength - currentLength;
+
+        charCount.textContent = `${remaining} characters left`;
+
+        if (remaining <= 50) {
+        charCount.style.color = "red";
+        } else if (remaining <= 100) {
+        charCount.style.color = "orange";
+        } else {
+        charCount.style.color = "green";
+        }
+    });
+
+    //Illegal character validation
+    const nameInput = document.querySelector('input[name="name"]');
+    const errorMsg = document.getElementById("errorMsg");
+
+    nameInput.addEventListener("input", function () {
+        const pattern = /^[A-Za-z\s]*$/;
+        if (!pattern.test(nameInput.value)) {
+        //nameInput.setCustomValidity("Name must only contain letters and spaces.");
+        errorMsg.textContent = "Illegal character in name!";
+        errorMsg.style.display = "block";
+
+        setTimeout(() => {
+            errorMsg.style.display = "none";
+        }, 2000);
+        } else {
+        nameInput.setCustomValidity(""); // clear error
+        }
+    });
+
+    //Captures data of any form errors and sends them to server via JSON
+    const form = document.getElementById("contactForm");
+    const formErrorsField = document.getElementById("formErrors");
+
+    form.addEventListener("submit", function (e) {
+        const errors = [];
+       
+
+        const pattern = /^[A-Za-z\s]*$/;
+        if (!pattern.test(nameInput.value)) {
+        // Even without setCustomValidity, we can still log it as an error
+        errors.push({
+            field: "name",
+            error: "Name must only contain letters and spaces."
+        });
+    }
+
+    //uncomment this once you're done with the form_errors array part of the hwk, then comment out block above
+      /*  if (!nameInput.checkValidity()) { 
+        errors.push({
+            field: "name",
+            error: nameInput.validationMessage
+        });
+        }*/ 
+
+        if (!comments.checkValidity()) {
+        errors.push({
+            field: "comments",
+            error: comments.validationMessage
+        });
+        }
+
+        formErrorsField.value = JSON.stringify(errors); // save to hidden field
+    });
+
+
+});
+</script>
+
+
+
+    
+</body>
+</html>

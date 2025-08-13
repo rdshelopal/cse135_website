@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!--webpage adapts to device size-->
+    <title>Ryandeep's Resume</title>
+    <link href="styles.css" rel="stylesheet">
+  
+</head>
+<body>
+    <header>
+        <nav id="navigation-bar">
+            <button onclick="location.href='/index.html'" id="homebutton"><strong><span>Ryandeep Shelopal</span></strong></button>  <!--Will use name as "Home" Button/add css emphasis-->
+            <ul class="navbar-links">
+                <li><a href="resume.html" alt="resume">Resume</a></li>
+                <li><a href="portfolio.html" alt="portfolio">Portfolio</a></li>
+                <li><a href="answersToInterviewQuestions.html" alt="answersToInterviewQuestions">Answers to Your Interview Questions</a>
+                <li><a href="contactMe.html" alt="contact">Contact Me</a></li>
+            </ul>
+            <button id="theme-toggle"> 🌞 / 🌜</button>
+        </nav>
+    </header>
+    <main id="resume">
+        <article> <!--Each section of my resume will be an article and each part of each article will be a section.-->
+            <section>
+                <h2>Education</h2>
+                <hr>
+                <main>
+                    <section id="ucsd1">
+                        <p>University of California, San Diego</p>
+                        <p>La Jolla, CA</p>
+                    </section>
+                    <section id="ucsd2">
+                        <p><em>Computer Engineering (B.S.)</em></p>
+                        <p><em>Aug 2022 - Aug 2025</em></p>
+
+                    </section>
+                    
+                </main>
+                
+            </section>
+            <br>
+            <section>
+                <section id="ohlone">
+                    <p>Ohlone College</p>
+                    <p>Fremont, CA</p>
+
+                </section>
+                <section id="ohlone2">
+                    <p><em>Mathematics (A.S.)</em></p>
+                    <p><em>Aug 2018 - May 2022</em></p>
+                </section>
+                
+                
+            </section>
+        </article>
+        <article>
+            <h2>Experience</h2>
+            <hr>
+            <section id="experiencesection" >
+                <h3>Wireless Product Testing Intern</h3>
+                <p><em>Underwriter's Laboratories</em></p>
+                <ul>
+                    <li>Operated DASY (Dosimetric Assessment System) robots and CMW 500 call boxes to record SAR (radio frequency)
+                        values of wireless devices for compliance with FCC/IC standards.</li>
+                    <li>Utilized cDASY6.0 software to model and document recorded SAR measurement for each cellular technology (LTE,
+                        GSM, etc).</li>
+                    <li>Worked closely with senior engineers in a dynamic, fast-paced, customer-focused environment to ensure proper
+                        evaluation of the device.</li>
+                </ul>
+            </section>
+        </article>
+        <article>
+            <h2>Skills</h2>
+            <hr>
+            <section id="skillssection">
+                <myskills>
+                
+                
+                <dl>
+                <dt>Frontend & Testing</dt>
+                <ul>
+                    <li>HTML, CSS, JavaScript, Jest, Puppeteer, Markdown</li>
+                </ul>
+
+                <dt>Databases</dt>
+                <ul>
+                    <li>SQL, MySQL</li>
+                </ul>
+
+                <dt>Programming Languages</dt>
+                <ul>
+                    <li>C, C++, Java, Python</li>
+                </ul>
+    
+                </dl>
+                </myskills>
+            </section>
+        </article>
+
+        <article>
+            <h2>Projects</h2>
+                <hr>
+            <section id="developerjournal">
+                
+                <h3>Developer Journal</h3>
+                <aside>
+                    <p>HTML/CSS/Javascript</p>
+                    <p>June 2024</p>
+                </aside>
+                <ul>
+                    <li>Collaborated with a team of 9 developers over a 4-week period to develop a developer journal web application.</li>
+                    <li>Took primary responsibility for designing and implementing responsive and visually appealing user interfaces using CSS and HTML</li>
+                    <li>Utilized JavaScript for adding interactive elements, enhancing user experience, and managing storage solutions</li>
+                    <li>Developed and executed unit tests using Jest, and utilized Puppeteer for end-to-end testing to ensure code quality, reliability, and functionality across different scenarios</li>
+                    <li>Followed Agile principles, participating in daily stand-ups, sprint planning, and retrospectives to ensure iterative and incremental development</li>
+                    <li>Integrated continuous integration and continuous deployment (CI/CD) pipelines to automate testing and deployment, enhancing the development workflow.</li>
+                    <li>Delivered a video presentation of the completed project at the end of the 4-week development period</li>
+                </ul>
+            </section>
+            <br>
+            <section id="alarm">
+                <h3>Alarm System</h3>
+                <aside>
+                    <p>Arduino, C, Breadboarding</p>
+                    <p>May 2022</p>
+                </aside>
+                <ul>
+                    <li>Collaborated with a team of 4 to construct a door lock alarm system prototype that would deter any wrongdoers
+                    from providing a fake fingerprint via mold, within a budget of $200.</li>
+                    <li>Utilized an Arduino UNO R3, LM335Z Temperature Sensor, Biometric Fingerprint Scanner, 12V Solenoid Lock,
+                    Relay, Breadboard, Resistors, LEDs, and a Buzzer. Total Expenditure: $85.83</li>
+                    <li>Programmed system in C-based programming language by utilizing the Biometric Scanner library provided by
+                    Arduino</li>
+                    <li>Presented a live demonstration at 2022 Ohlone College Engineering Innovation Showcase.</li>
+                </ul>
+            </section>
+        </article>
+    </main>
+
+    <footer>
+        <br>
+        <a href="resume.pdf" download="Ryan_Resume.pdf">
+        <button>Download Resume!</button>
+            </a>
+
+        <br>
+        <p>&copy; 2025 Ryandeep Shelopal</p>
+    </footer>
+    <script src="themes.js"></script>
+    
+</body>
+
+</html>
