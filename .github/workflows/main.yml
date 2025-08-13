@@ -3,7 +3,6 @@ name: Deploy to DigitalOcean (SSH)
 on:
   push:
     branches: ["main"]
-  # Optional: allow manual runs from the Actions tab
   workflow_dispatch:
 
 concurrency:
@@ -17,6 +16,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    env:
+      DEPLOY_PATH: /var/www/rshelopal.site
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -29,22 +31,47 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          # Default to port 22 if not provided
           PORT="${SSH_PORT:-22}"
           ssh-keyscan -p "$PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+      - name: Ensure target directory exists
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          PORT="${SSH_PORT:-22}"
+          ssh -i ~/.ssh/id_rsa -p "$PORT" -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
+            "mkdir -p '$DEPLOY_PATH'"
 
       - name: Deploy with rsync (overwrite + delete extraneous files)
         env:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
+          DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
         run: |
           set -euo pipefail
           PORT="${SSH_PORT:-22}"
-          rsync -az --delete \
+          rsync -rltDz --delete \
+            --no-perms --no-owner --no-group --omit-dir-times --no-times \
+            --info=stats2,progress2 \
             --exclude ".git/" \
             --exclude ".github/" \
+            --exclude ".vscode/" \
+            --exclude ".idea/" \
             -e "ssh -p $PORT -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes" \
-            ./ "$SSH_USER@$SSH_HOST:/var/www/rshelopal.site/"
+            ./ "$SSH_USER@$SSH_HOST:$DEPLOY_PATH"
+          # If your user needs sudo to write there, replace the rsync command above with:
+          # rsync -rltDz --delete \
+          #   --no-perms --no-owner --no-group --omit-dir-times --no-times \
+          #   --info=stats2,progress2 \
+          #   --exclude ".git/" --exclude ".github/" --exclude ".vscode/" --exclude ".idea/" \
+          #   --rsync-path="sudo rsync" \
+          #   -e "ssh -p $PORT -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes" \
+          #   ./ "$SSH_USER@$SSH_HOST:$DEPLOY_PATH"
+
