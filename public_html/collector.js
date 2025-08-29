@@ -96,3 +96,102 @@ window.addEventListener("load", async () => {
   }).catch(() => {});
 });
 
+// --- tiny sender helper ---
+function sendEvent(type, extra) {
+  const payload = {
+    type, ts: Date.now(), sessionId: sid,
+    url: location.href, path: location.pathname, referrer: document.referrer || null,
+    ...extra
+  };
+  fetch("/json/events", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  }).catch(() => {});
+}
+
+
+// ========== ACTIVITY ==========
+
+// throttle utility so we don't spam
+function throttle(fn, minIntervalMs) {
+  let last = 0;
+  return (...args) => {
+    const now = Date.now();
+    if (now - last >= minIntervalMs) { last = now; fn(...args); }
+  };
+}
+
+// idle detection (≥ 2s of no activity)
+let lastActivityTs = Date.now();
+let idleStart = null;
+function markActivity() {
+  const now = Date.now();
+  if (idleStart && now - idleStart >= 2000) {
+    sendEvent("idle", { endedAt: now, durationMs: now - idleStart });
+  }
+  idleStart = null;
+  lastActivityTs = now;
+}
+setInterval(() => {
+  if (!idleStart && Date.now() - lastActivityTs >= 2000) {
+    idleStart = lastActivityTs + 2000;
+  }
+}, 500);
+
+// errors
+window.addEventListener("error", (e) => {
+  sendEvent("error", {
+    error: {
+      message: e.message || null,
+      source: e.filename || null,
+      lineno: e.lineno || null,
+      colno: e.colno || null
+    }
+  });
+});
+
+// mouse
+document.addEventListener("mousemove", throttle((e) => {
+  sendEvent("mousemove", { x: e.clientX, y: e.clientY }); markActivity();
+}, 100));
+document.addEventListener("click", (e) => {
+  sendEvent("click", { button: e.button, x: e.clientX, y: e.clientY }); markActivity();
+}, true);
+document.addEventListener("scroll", throttle(() => {
+  sendEvent("scroll", { x: window.scrollX, y: window.scrollY }); markActivity();
+}, 200), { passive: true });
+
+// keyboard
+document.addEventListener("keydown", (e) => {
+  sendEvent("key", { phase: "down", key: e.key, code: e.code }); markActivity();
+});
+document.addEventListener("keyup", (e) => {
+  sendEvent("key", { phase: "up", key: e.key, code: e.code }); markActivity();
+});
+
+// visibility + leave
+document.addEventListener("visibilitychange", () => {
+  sendEvent(document.visibilityState === "visible" ? "visible" : "hidden", {});
+  if (document.visibilityState === "visible") markActivity();
+});
+window.addEventListener("beforeunload", () => {
+  const now = Date.now();
+  // flush pending idle block
+  if (idleStart && now - idleStart >= 2000) {
+    try {
+      navigator.sendBeacon("/json/events", JSON.stringify({
+        type:"idle", ts: now, sessionId: sid,
+        url: location.href, path: location.pathname, referrer: document.referrer || null,
+        endedAt: now, durationMs: now - idleStart
+      }));
+    } catch {}
+  }
+  // send leave
+  try {
+    navigator.sendBeacon("/json/events", JSON.stringify({
+      type:"leave", ts: now, sessionId: sid,
+      url: location.href, path: location.pathname, referrer: document.referrer || null
+    }));
+  } catch {}
+});
