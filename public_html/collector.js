@@ -41,11 +41,33 @@ const staticBase = {
   network: (navigator.connection && navigator.connection.effectiveType) || null
 };
 
-// Gather async image detection, then send one event
-(async () => {
+window.addEventListener("load", async () => {
+  // --- performance block ---
+  let performanceBlock = {};
+  const nav = performance.getEntriesByType("navigation")[0];
+  if (nav && nav.toJSON) {
+    const j = nav.toJSON();
+    performanceBlock = {
+      raw: j,
+      start: j.startTime,
+      end: j.loadEventEnd,
+      totalMs: j.loadEventEnd - j.startTime
+    };
+  } else if (performance.timing) {
+    const t = performance.timing;
+    performanceBlock = {
+      raw: t,
+      start: t.navigationStart,
+      end: t.loadEventEnd,
+      totalMs: t.loadEventEnd - t.navigationStart
+    };
+  }
+
+  // --- async static bits ---
   const imagesEnabled = await detectImagesEnabled();
   const cssEnabled = detectCssEnabled();
 
+  // --- final payload ---
   const payload = {
     type: "pageview",
     ts: Date.now(),
@@ -53,16 +75,14 @@ const staticBase = {
     url: location.href,
     path: location.pathname,
     referrer: document.referrer || null,
-    static: {
-      ...staticBase,
-      imagesEnabled,
-      cssEnabled
-    }
+    static: { ...staticBase, imagesEnabled, cssEnabled },
+    performance: performanceBlock    // <--- new
   };
 
   fetch("/json/events", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
-  }).catch(() => { /* ignore for now; retries later */ });
-})();
+  }).catch(() => {});
+});
+
