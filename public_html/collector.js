@@ -42,26 +42,36 @@ const staticBase = {
 };
 
 window.addEventListener("load", async () => {
-  // --- performance block ---
-  let performanceBlock = {};
-  const nav = performance.getEntriesByType("navigation")[0];
-  if (nav && nav.toJSON) {
+  // --- performance block (defensive across browsers) ---
+    let performanceBlock = {};
+    const nav = performance.getEntriesByType("navigation")[0];
+
+    if (nav && nav.toJSON) {
     const j = nav.toJSON();
+    const start = j.startTime || 0;
+    // prefer loadEventEnd; fall back to domComplete → responseEnd → duration → now()
+    let end = j.loadEventEnd || j.domComplete || j.responseEnd || j.duration || 0;
+    if (!end || end <= start) end = performance.now();
+
     performanceBlock = {
-      raw: j,
-      start: j.startTime,
-      end: j.loadEventEnd,
-      totalMs: j.loadEventEnd - j.startTime
+        raw: j,
+        start,
+        end,
+        totalMs: Math.max(0, end - start)
     };
-  } else if (performance.timing) {
+    } else if (performance.timing) {
     const t = performance.timing;
+    const start = t.navigationStart || 0;
+    // legacy fallbacks
+    let end = t.loadEventEnd || t.domComplete || t.responseEnd || 0;
+    if (!end || end <= start) end = Date.now();
     performanceBlock = {
-      raw: t,
-      start: t.navigationStart,
-      end: t.loadEventEnd,
-      totalMs: t.loadEventEnd - t.navigationStart
+        raw: t,
+        start,
+        end,
+        totalMs: Math.max(0, end - start)
     };
-  }
+    }
 
   // --- async static bits ---
   const imagesEnabled = await detectImagesEnabled();
