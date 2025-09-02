@@ -96,37 +96,38 @@ window.addEventListener("load", async () => {
   body: JSON.stringify(payload)
 }).catch(() => {});
 
-// Forward to Mongo-backed APIs
-  if (payload.static) {
-    fetch("/api/static", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ts: payload.ts,
-        sessionId: payload.sessionId,
-        url: payload.url,
-        path: payload.path,
-        referrer: payload.referrer,
-        static: payload.static
-      })
-    }).catch(() => {});
-  }
+// Optional: also forward to /api/static or /api/performance
+/*if (payload.static) {
+  fetch("/api/static", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ts: payload.ts,
+      sessionId: payload.sessionId,
+      url: payload.url,
+      path: payload.path,
+      referrer: payload.referrer,
+      static: payload.static
+    })
+  }).catch(() => {});
+}
 
-  if (payload.performance) {
-    fetch("/api/performance", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ts: payload.ts,
-        sessionId: payload.sessionId,
-        url: payload.url,
-        path: payload.path,
-        referrer: payload.referrer,
-        performance: payload.performance
-      })
-    }).catch(() => {});
-  }
-}); // <-- closes the load listener
+if (payload.performance) {
+  fetch("/api/performance", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ts: payload.ts,
+      sessionId: payload.sessionId,
+      url: payload.url,
+      path: payload.path,
+      referrer: payload.referrer,
+      performance: payload.performance
+    })
+  }).catch(() => {});*/
+
+
+});
 
 // --- tiny sender helper ---
 function sendEvent(type, extra) {
