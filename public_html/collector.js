@@ -96,36 +96,35 @@ window.addEventListener("load", async () => {
   body: JSON.stringify(payload)
 }).catch(() => {});
 
-// Optional: also forward to /api/static or /api/performance
-/*if (payload.static) {
-  fetch("/api/static", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      ts: payload.ts,
-      sessionId: payload.sessionId,
-      url: payload.url,
-      path: payload.path,
-      referrer: payload.referrer,
-      static: payload.static
-    })
-  }).catch(() => {});
-}
-
-if (payload.performance) {
-  fetch("/api/performance", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      ts: payload.ts,
-      sessionId: payload.sessionId,
-      url: payload.url,
-      path: payload.path,
-      referrer: payload.referrer,
-      performance: payload.performance
-    })
-  }).catch(() => {});*/
-
+// 2️⃣ MySQL performance data
+fetch("/api/performance", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    sessionId: sid,
+    ts: payload.ts,
+    path: payload.path,
+    performance: payload.performance
+  })
+}).catch(() => {}); // <-- make sure to close it
+  
+  // 3️⃣ MySQL static data
+fetch('/api/static/mysql', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    url: window.location.href,
+    user_agent: navigator.userAgent,
+    screen_width: screen.width,
+    screen_height: screen.height,
+    timestamp: Date.now(),
+    full_static_json: {
+      imagesEnabled,
+      cssEnabled,
+      ...staticBase
+    }
+  })
+}).catch(() => {});
 
 });
 
