@@ -1,6 +1,6 @@
 // Mongo setup
 // at very top (ESM style)
-import express from 'express';
+/*import express from 'express';
 import { MongoClient } from 'mongodb';
 import dotenv from 'dotenv';
 
@@ -119,7 +119,7 @@ app.get('/api/performance', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: 'Server error' });
   }
-});
+});*/
 
 
 
