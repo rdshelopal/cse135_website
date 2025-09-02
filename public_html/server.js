@@ -1,5 +1,9 @@
 // MySQL setup
-const mysql = require('mysql2');
+const express = require('express');
+const app = express(); // <-- Required or `app` won't exist
+const mysql = require('mysql2'); // or your correct DB lib
+const cors = require('cors');
+
 
 const db = mysql.createConnection({
   host: '127.0.0.1',
