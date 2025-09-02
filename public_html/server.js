@@ -1,181 +1,109 @@
-// MySQL setup
-const express = require('express');
-const app = express(); // <-- Required or `app` won't exist
-const mysql = require('mysql2'); // or your correct DB lib
-const cors = require('cors');
+// server.js (ESM)
+import express from 'express';
+import { MongoClient } from 'mongodb';
+import dotenv from 'dotenv';
+import jsonServer from 'json-server';
+import fs from 'fs';
 
+dotenv.config();
 
-const db = mysql.createConnection({
-  host: '127.0.0.1',
-  user: 'cse135user',
-  password: '*Pizzaballs56!',
-  database: 'cse135'
-});
+const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Connect to MySQL
-db.connect((err) => {
-  if (err) {
-    console.error('MySQL connection failed:', err);
-  } else {
-    console.log('Connected to MySQL!');
-  }
-});
+const { MONGO_URI, MONGO_DB, PORT = 3000 } = process.env;
 
-//for static sql table
-app.post('/api/static', (req, res) => {
-  const {
-    user_agent,
-    language,
-    cookies_enabled,
-    javascript_enabled,
-    images_enabled,
-    css_enabled,
-    screen_width,
-    screen_height,
-    window_width,
-    window_height,
-    connection_type,
-  } = req.body;
+let Static, Performance;
 
-  const sql = `
-    INSERT INTO static_data (
-      user_agent, language, cookies_enabled, javascript_enabled,
-      images_enabled, css_enabled, screen_width, screen_height,
-      window_width, window_height, connection_type
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `;
+async function init() {
+  // ---- Mongo connect ----
+  const client = new MongoClient(MONGO_URI, { ignoreUndefined: true });
+  await client.connect();
+  const db = client.db(MONGO_DB);
+  Static = db.collection('static');
+  Performance = db.collection('performance');
+  console.log('✅ Connected to MongoDB');
 
-  db.query(sql, [
-    user_agent,
-    language,
-    cookies_enabled,
-    javascript_enabled,
-    images_enabled,
-    css_enabled,
-    screen_width,
-    screen_height,
-    window_width,
-    window_height,
-    connection_type
-  ], (err) => {
-    if (err) {
-      console.error('Error inserting static_data:', err);
-      return res.status(500).send('Error storing static data');
-    }
-    res.status(200).send('Static data stored successfully');
+  // ---- Test route ----
+  app.get('/ping', async (_req, res) => {
+    const count = await Static.countDocuments().catch(() => 0);
+    res.json({ msg: 'pong', staticCount: count });
   });
-});
 
-//For performance sql table
-app.post('/api/performance', (req, res) => {
-  const {
-    navigation_start,
-    load_event_end,
-    total_load_time,
-    full_timing_json
-  } = req.body;
+  // ---------- /api/static (Mongo) ----------
+  app.post('/api/static', async (req, res) => {
+    try {
+      const { ts, sessionId, url, path, referrer, static: s } = req.body || {};
+      if (!ts || !sessionId || !s) return res.status(400).json({ error: 'Missing ts/sessionId/static' });
 
-  const sql = `
-    INSERT INTO performance_data (
-      navigation_start, load_event_end, total_load_time, full_timing_json
-    )
-    VALUES (?, ?, ?, ?)
-  `;
-
-  db.query(sql, [
-    navigation_start,
-    load_event_end,
-    total_load_time,
-    JSON.stringify(full_timing_json)
-  ], (err) => {
-    if (err) {
-      console.error('Error inserting performance_data:', err);
-      return res.status(500).send('Error storing performance data');
-    }
-    res.status(200).send('Performance data stored successfully');
+      const doc = {
+        ts: Number(ts), sessionId: String(sessionId),
+        url: url || null, path: path || null, referrer: referrer || null,
+        ua: s.ua, lang: s.lang,
+        cookiesEnabled: s.cookiesEnabled ?? null, jsEnabled: s.jsEnabled ?? true,
+        screen: s.screen || null, viewport: s.viewport || null, network: s.network || null,
+        imagesEnabled: s.imagesEnabled ?? null, cssEnabled: s.cssEnabled ?? null,
+        createdAt: new Date()
+      };
+      const r = await Static.insertOne(doc);
+      res.status(201).json({ _id: r.insertedId, ...doc });
+    } catch (e) { console.error('POST /api/static', e); res.status(500).json({ error: 'Server error' }); }
   });
-});
 
+  app.get('/api/static', async (req, res) => {
+    try {
+      const filter = req.query.sessionId ? { sessionId: req.query.sessionId } : {};
+      const limit = Math.min(Number(req.query.limit) || 200, 1000);
+      const docs = await Static.find(filter).sort({ _id: -1 }).limit(limit).toArray();
+      res.json(docs);
+    } catch (e) { res.status(500).json({ error: 'Server error' }); }
+  });
 
+  // ---------- /api/performance (Mongo) ----------
+  app.post('/api/performance', async (req, res) => {
+    try {
+      const { ts, sessionId, url, path, referrer, performance: p } = req.body || {};
+      if (!ts || !sessionId || !p) return res.status(400).json({ error: 'Missing ts/sessionId/performance' });
 
-// app.js file
-var jsonServer = require('json-server');
-var fs = require('fs'); // ⬅ needed to read/write db.json
-var server = jsonServer.create();
+      const doc = {
+        ts: Number(ts), sessionId: String(sessionId),
+        url: url || null, path: path || null, referrer: referrer || null,
+        start: Number(p.start ?? 0), end: Number(p.end ?? 0), totalMs: Number(p.totalMs ?? 0),
+        raw: p.raw || null, createdAt: new Date()
+      };
+      const r = await Performance.insertOne(doc);
+      res.status(201).json({ _id: r.insertedId, ...doc });
+    } catch (e) { console.error('POST /api/performance', e); res.status(500).json({ error: 'Server error' }); }
+  });
 
-// Set default middlewares (logger, static, cors and no-cache)
-server.use(jsonServer.defaults());
-server.use(jsonServer.bodyParser); // Needed to read POST/PUT body
+  app.get('/api/performance', async (req, res) => {
+    try {
+      const filter = req.query.sessionId ? { sessionId: req.query.sessionId } : {};
+      const limit = Math.min(Number(req.query.limit) || 200, 1000);
+      const docs = await Performance.find(filter).sort({ _id: -1 }).limit(limit).toArray();
+      res.json(docs);
+    } catch (e) { res.status(500).json({ error: 'Server error' }); }
+  });
 
-// Helper functions to read and write db.json
-function readDB() {
-  const data = fs.readFileSync('db.json', 'utf8');
-  return JSON.parse(data);
+  // ---------- json-server under /json ONLY ----------
+  const dbPath = 'db.json';
+  if (!fs.existsSync(dbPath)) fs.writeFileSync(dbPath, JSON.stringify({ events: [], posts: [] }, null, 2));
+
+  // keep your /json/events logger for Part 1
+  app.post('/json/events', (req, res) => {
+    const db = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+    db.events.push(req.body);
+    fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
+    res.status(201).json({ ok: true });
+  });
+
+  const jsMiddlewares = jsonServer.defaults();
+  app.use('/json', jsMiddlewares);
+  const router = jsonServer.router(dbPath);
+  app.use('/json', router);
+
+  // ---- start ONE server ----
+  app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
 }
 
-function writeDB(data) {
-  fs.writeFileSync('db.json', JSON.stringify(data, null, 2));
-}
-
-// ✅ GET /api/static → Return all events
-server.get('/api/static', (req, res) => {
-  const db = readDB();
-  res.json(db.events);
-});
-
-// ✅ GET /api/static/:id → Return one event by ID
-server.get('/api/static/:id', (req, res) => {
-  const db = readDB();
-  const id = parseInt(req.params.id);
-  const event = db.events.find(e => e.id === id);
-  if (event) res.json(event);
-  else res.status(404).json({ error: 'Event not found' });
-});
-
-// ✅ POST /api/static → Add a new event
-server.post('/api/static', (req, res) => {
-  const db = readDB();
-  const newId = db.events.length ? db.events[db.events.length - 1].id + 1 : 1;
-  const newEvent = { id: newId, ...req.body };
-  db.events.push(newEvent);
-  writeDB(db);
-  res.status(201).json(newEvent);
-});
-
-// ✅ PUT /api/static/:id → Update an event by ID
-server.put('/api/static/:id', (req, res) => {
-  const db = readDB();
-  const id = parseInt(req.params.id);
-  const index = db.events.findIndex(e => e.id === id);
-  if (index !== -1) {
-    db.events[index] = { id, ...req.body };
-    writeDB(db);
-    res.json(db.events[index]);
-  } else {
-    res.status(404).json({ error: 'Event not found' });
-  }
-});
-
-// ✅ DELETE /api/static/:id → Delete an event by ID
-server.delete('/api/static/:id', (req, res) => {
-  const db = readDB();
-  const id = parseInt(req.params.id);
-  const filtered = db.events.filter(e => e.id !== id);
-  if (filtered.length !== db.events.length) {
-    db.events = filtered;
-    writeDB(db);
-    res.status(204).end(); // No content
-  } else {
-    res.status(404).json({ error: 'Event not found' });
-  }
-});
-
-// Use json-server default routes too (for /posts and /events)
-var router = jsonServer.router('db.json');
-server.use(router);
-
-// Start the server
-server.listen(3000, () => {
-  console.log('Server running at http://localhost:3000');
-});
+init().catch(err => { console.error('Mongo init failed:', err); process.exit(1); });
