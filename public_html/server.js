@@ -17,6 +17,83 @@ db.connect((err) => {
   }
 });
 
+//for static sql table
+app.post('/api/static', (req, res) => {
+  const {
+    user_agent,
+    language,
+    cookies_enabled,
+    javascript_enabled,
+    images_enabled,
+    css_enabled,
+    screen_width,
+    screen_height,
+    window_width,
+    window_height,
+    connection_type,
+  } = req.body;
+
+  const sql = `
+    INSERT INTO static_data (
+      user_agent, language, cookies_enabled, javascript_enabled,
+      images_enabled, css_enabled, screen_width, screen_height,
+      window_width, window_height, connection_type
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+
+  db.query(sql, [
+    user_agent,
+    language,
+    cookies_enabled,
+    javascript_enabled,
+    images_enabled,
+    css_enabled,
+    screen_width,
+    screen_height,
+    window_width,
+    window_height,
+    connection_type
+  ], (err) => {
+    if (err) {
+      console.error('Error inserting static_data:', err);
+      return res.status(500).send('Error storing static data');
+    }
+    res.status(200).send('Static data stored successfully');
+  });
+});
+
+//For performance sql table
+app.post('/api/performance', (req, res) => {
+  const {
+    navigation_start,
+    load_event_end,
+    total_load_time,
+    full_timing_json
+  } = req.body;
+
+  const sql = `
+    INSERT INTO performance_data (
+      navigation_start, load_event_end, total_load_time, full_timing_json
+    )
+    VALUES (?, ?, ?, ?)
+  `;
+
+  db.query(sql, [
+    navigation_start,
+    load_event_end,
+    total_load_time,
+    JSON.stringify(full_timing_json)
+  ], (err) => {
+    if (err) {
+      console.error('Error inserting performance_data:', err);
+      return res.status(500).send('Error storing performance data');
+    }
+    res.status(200).send('Performance data stored successfully');
+  });
+});
+
+
 
 // app.js file
 var jsonServer = require('json-server');
