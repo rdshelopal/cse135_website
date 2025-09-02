@@ -89,11 +89,44 @@ window.addEventListener("load", async () => {
     performance: performanceBlock    // <--- new
   };
 
+  //original full payload
   fetch("/json/events", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(payload)
+}).catch(() => {});
+
+// Also send to new API endpoints
+if (payload.static) {
+  fetch("/api/static", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({
+      ts: payload.ts,
+      sessionId: payload.sessionId,
+      url: payload.url,
+      path: payload.path,
+      referrer: payload.referrer,
+      static: payload.static
+    })
   }).catch(() => {});
+}
+
+if (payload.performance) {
+  fetch("/api/performance", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ts: payload.ts,
+      sessionId: payload.sessionId,
+      url: payload.url,
+      path: payload.path,
+      referrer: payload.referrer,
+      performance: payload.performance
+    })
+  }).catch(() => {});
+}
+
 });
 
 // --- tiny sender helper ---
