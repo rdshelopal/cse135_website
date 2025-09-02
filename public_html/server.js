@@ -1,9 +1,5 @@
 // MySQL setup
-const express = require('express');
-const app = express(); // <-- Required or `app` won't exist
-const mysql = require('mysql2'); // or your correct DB lib
-const cors = require('cors');
-
+const mysql = require('mysql2');
 
 const db = mysql.createConnection({
   host: '127.0.0.1',
@@ -21,7 +17,7 @@ db.connect((err) => {
   }
 });
 
-//for static sql table
+//for static
 app.post('/api/static', (req, res) => {
   const {
     user_agent,
