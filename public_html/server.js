@@ -1,5 +1,12 @@
 // MySQL setup
+// Top of your file
+const express = require('express');
 const mysql = require('mysql2');
+const fs = require('fs');
+
+const app = express();
+app.use(express.json()); // for JSON body parsing
+
 
 const db = mysql.createConnection({
   host: '127.0.0.1',
