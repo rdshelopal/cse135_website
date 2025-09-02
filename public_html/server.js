@@ -1,125 +1,101 @@
-// Mongo setup
-// at very top (ESM style)
-/*import express from 'express';
-import { MongoClient } from 'mongodb';
-import dotenv from 'dotenv';
+// MySQL setup
+const express = require('express');
+const app = express(); // <-- Required or `app` won't exist
+const mysql = require('mysql2'); // or your correct DB lib
+const cors = require('cors');
 
-dotenv.config();
 
-const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const db = mysql.createConnection({
+  host: '127.0.0.1',
+  user: 'cse135user',
+  password: '*Pizzaballs56!',
+  database: 'cse135'
+});
 
-const { MONGO_URI, MONGO_DB, PORT = 3000 } = process.env;
+// Connect to MySQL
+db.connect((err) => {
+  if (err) {
+    console.error('MySQL connection failed:', err);
+  } else {
+    console.log('Connected to MySQL!');
+  }
+});
 
-// Make these available to your routes later
-let db;
-export let Static, Performance;
+//for static sql table
+app.post('/api/static', (req, res) => {
+  const {
+    user_agent,
+    language,
+    cookies_enabled,
+    javascript_enabled,
+    images_enabled,
+    css_enabled,
+    screen_width,
+    screen_height,
+    window_width,
+    window_height,
+    connection_type,
+  } = req.body;
 
-async function init() {
-  const client = new MongoClient(MONGO_URI, { ignoreUndefined: true });
-  await client.connect();
-  db = client.db(MONGO_DB);
-  Static = db.collection('static');
-  Performance = db.collection('performance');
-  console.log('✅ Connected to MongoDB');
+  const sql = `
+    INSERT INTO static_data (
+      user_agent, language, cookies_enabled, javascript_enabled,
+      images_enabled, css_enabled, screen_width, screen_height,
+      window_width, window_height, connection_type
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
 
-  // quick test route
-  app.get('/ping', async (_req, res) => {
-    const count = await Static.countDocuments().catch(() => 0);
-    res.json({ msg: 'pong', staticCount: count });
+  db.query(sql, [
+    user_agent,
+    language,
+    cookies_enabled,
+    javascript_enabled,
+    images_enabled,
+    css_enabled,
+    screen_width,
+    screen_height,
+    window_width,
+    window_height,
+    connection_type
+  ], (err) => {
+    if (err) {
+      console.error('Error inserting static_data:', err);
+      return res.status(500).send('Error storing static data');
+    }
+    res.status(200).send('Static data stored successfully');
   });
-
-  app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
-}
-
-init().catch(err => {
-  console.error('Mongo init failed:', err);
-  process.exit(1);
 });
 
-// ---- STATIC: create & read ----
-app.post('/api/static', async (req, res) => {
-  try {
-    const { ts, sessionId, url, path, referrer, static: s } = req.body || {};
-    if (!ts || !sessionId || !s) return res.status(400).json({ error: 'Missing ts/sessionId/static' });
+//For performance sql table
+app.post('/api/performance', (req, res) => {
+  const {
+    navigation_start,
+    load_event_end,
+    total_load_time,
+    full_timing_json
+  } = req.body;
 
-    const doc = {
-      ts: Number(ts),
-      sessionId: String(sessionId),
-      url: url || null,
-      path: path || null,
-      referrer: referrer || null,
-      ua: s.ua,
-      lang: s.lang,
-      cookiesEnabled: s.cookiesEnabled ?? null,
-      jsEnabled: s.jsEnabled ?? true,
-      screen: s.screen || null,
-      viewport: s.viewport || null,
-      network: s.network || null,
-      imagesEnabled: s.imagesEnabled ?? null,
-      cssEnabled: s.cssEnabled ?? null,
-      createdAt: new Date()
-    };
+  const sql = `
+    INSERT INTO performance_data (
+      navigation_start, load_event_end, total_load_time, full_timing_json
+    )
+    VALUES (?, ?, ?, ?)
+  `;
 
-    const r = await Static.insertOne(doc);
-    res.status(201).json({ _id: r.insertedId, ...doc });
-  } catch (e) {
-    console.error('POST /api/static', e);
-    res.status(500).json({ error: 'Server error' });
-  }
+  db.query(sql, [
+    navigation_start,
+    load_event_end,
+    total_load_time,
+    JSON.stringify(full_timing_json)
+  ], (err) => {
+    if (err) {
+      console.error('Error inserting performance_data:', err);
+      return res.status(500).send('Error storing performance data');
+    }
+    res.status(200).send('Performance data stored successfully');
+  });
 });
-
-app.get('/api/static', async (req, res) => {
-  try {
-    const filter = {};
-    if (req.query.sessionId) filter.sessionId = req.query.sessionId;
-    const limit = Math.min(Number(req.query.limit) || 200, 1000);
-    const docs = await Static.find(filter).sort({ _id: -1 }).limit(limit).toArray();
-    res.json(docs);
-  } catch (e) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// ---- PERFORMANCE: create & read ----
-app.post('/api/performance', async (req, res) => {
-  try {
-    const { ts, sessionId, url, path, referrer, performance: p } = req.body || {};
-    if (!ts || !sessionId || !p) return res.status(400).json({ error: 'Missing ts/sessionId/performance' });
-
-    const doc = {
-      ts: Number(ts),
-      sessionId: String(sessionId),
-      url: url || null,
-      path: path || null,
-      referrer: referrer || null,
-      start: Number(p.start ?? 0),
-      end: Number(p.end ?? 0),
-      totalMs: Number(p.totalMs ?? 0),
-      raw: p.raw || null,
-      createdAt: new Date()
-    };
-
-    const r = await Performance.insertOne(doc);
-    res.status(201).json({ _id: r.insertedId, ...doc });
-  } catch (e) {
-    console.error('POST /api/performance', e);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-app.get('/api/performance', async (req, res) => {
-  try {
-    const filter = {};
-    if (req.query.sessionId) filter.sessionId = req.query.sessionId;
-    const limit = Math.min(Number(req.query.limit) || 200, 1000);
-    const docs = await Performance.find(filter).sort({ _id: -1 }).limit(limit).toArray();
-    res.json(docs);
-  } catch (e) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});*/
 
 
 
