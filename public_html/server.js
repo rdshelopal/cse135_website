@@ -1,3 +1,23 @@
+// MySQL setup
+const mysql = require('mysql2');
+
+const db = mysql.createConnection({
+  host: 'localhost',
+  user: 'root',
+  password: '',
+  database: 'cse135'
+});
+
+// Connect to MySQL
+db.connect((err) => {
+  if (err) {
+    console.error('MySQL connection failed:', err);
+  } else {
+    console.log('Connected to MySQL!');
+  }
+});
+
+
 // app.js file
 var jsonServer = require('json-server');
 var fs = require('fs'); // ⬅ needed to read/write db.json
