@@ -67,12 +67,34 @@ jobs:
             --exclude "node_modules/" \
             -e "ssh -p $PORT -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes" \
             ./ "$SSH_USER@$SSH_HOST:$DEPLOY_PATH"
-          # If your user needs sudo to write there, replace the rsync command above with:
-          # rsync -rltDz --delete \
-          #   --no-perms --no-owner --no-group --omit-dir-times --no-times \
-          #   --info=stats2,progress2 \
-          #   --exclude ".git/" --exclude ".github/" --exclude ".vscode/" --exclude ".idea/" \
-          #   --rsync-path="sudo rsync" \
-          #   -e "ssh -p $PORT -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes" \
-          #   ./ "$SSH_USER@$SSH_HOST:$DEPLOY_PATH"
 
+      - name: Restart PM2 (server.js)
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          PORT="${SSH_PORT:-22}"
+          ssh -i ~/.ssh/id_rsa -p "$PORT" -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" 'bash -lc "
+            set -euo pipefail
+            # Load nvm (if present) so pm2 is on PATH
+            export NVM_DIR=\$HOME/.nvm
+            [ -s \"\$NVM_DIR/nvm.sh\" ] && . \"\$NVM_DIR/nvm.sh\"
+            [ -s \"\$NVM_DIR/bash_completion\" ] && . \"\$NVM_DIR/bash_completion\"
+            export PATH=\$HOME/.npm-global/bin:\$HOME/.yarn/bin:\$PATH
+
+            cd \"'$DEPLOY_PATH'\"
+
+            # Try to restart by filename or name; start if not found
+            if pm2 list | grep -q \"server.js\"; then
+              pm2 restart server.js --update-env
+            elif pm2 list | grep -q \"\\bserver\\b\"; then
+              pm2 restart server --update-env
+            else
+              pm2 start server.js --name server --time
+            fi
+
+            pm2 save
+          "'
