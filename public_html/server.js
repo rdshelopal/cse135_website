@@ -106,24 +106,6 @@ app.post('/api/performance', (req, res) => {
 
 var jsonServer = require('json-server');
 var fs = require('fs'); // ⬅ needed to read/write db.json
-var mysql = require('mysql');
-
-// Create a MySQL connection
-var db = mysql.createConnection({
-  host: '127.0.0.1',
-  user: 'cse135user',
-  password: '*Pizzaballs56!',
-  database: 'cse135'
-});
-
-db.connect((err) => {
-  if (err) {
-    console.error('❌ MySQL connection error:', err);
-  } else {
-    console.log('✅ Connected to MySQL database');
-  }
-});
-
 var server = jsonServer.create();
 
 // Set default middlewares (logger, static, cors and no-cache)
@@ -196,77 +178,6 @@ server.delete('/api/static/:id', (req, res) => {
 // Use json-server default routes too (for /posts and /events)
 var router = jsonServer.router('db.json');
 server.use(router);
-
-// ✅ POST /api/performance → Insert performance data into MySQL
-// ✅ POST /api/performance → Insert performance data into MySQL
-server.post('/api/performance', (req, res) => {
-  const {
-    navigation_start,
-    load_event_end,
-    total_load_time,
-    full_timing_json
-  } = req.body;
-
-  const sql = `
-    INSERT INTO performance_data (
-      navigation_start,
-      load_event_end,
-      total_load_time,
-      full_timing_json
-    ) VALUES (?, ?, ?, ?)
-  `;
-
-  db.query(sql, [
-    navigation_start,
-    load_event_end,
-    total_load_time,
-    JSON.stringify(full_timing_json)
-  ], (err) => {
-    if (err) {
-      console.error('❌ Error inserting performance_data:', err);
-      return res.status(500).send('Error storing performance data');
-    }
-    res.status(200).send('✅ Performance data stored successfully');
-  });
-});
-
-// ✅ ✅ POST /api/static/mysql → Insert static data into MySQL
-server.post('/api/static/mysql', (req, res) => {
-  const {
-    url,
-    user_agent,
-    screen_width,
-    screen_height,
-    timestamp,
-    full_static_json
-  } = req.body;
-
-  const sql = `
-    INSERT INTO static_data (
-      url,
-      user_agent,
-      screen_width,
-      screen_height,
-      timestamp,
-      full_static_json
-    ) VALUES (?, ?, ?, ?, ?, ?)
-  `;
-
-  db.query(sql, [
-    url,
-    user_agent,
-    screen_width,
-    screen_height,
-    timestamp,
-    JSON.stringify(full_static_json)
-  ], (err, result) => {
-    if (err) {
-      console.error('MySQL Insert Error:', err);
-      return res.status(500).json({ error: 'Failed to insert static data' });
-    }
-    res.status(201).json({ id: result.insertId, message: 'Static data inserted' });
-  });
-});
 
 // Start the server
 server.listen(3000, () => {
