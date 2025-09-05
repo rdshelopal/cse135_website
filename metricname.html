@@ -1,0 +1,188 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Detailed Report — Screen Width Distribution</title>
+  <script src="https://cdn.zingchart.com/zingchart.min.js"></script>
+  <style>
+    :root { --maxw: 1100px; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#fafafa; color:#111; }
+    header, main { max-width: var(--maxw); margin: 0 auto; padding: 18px 12px; }
+    h1 { margin: 0 0 8px; }
+    .muted { color:#666; font-size: 13px; }
+    .card { background:#fff; border:1px solid #e8e8e8; border-radius:12px; }
+    .chart { height: 420px; padding:10px; }
+    .pad { padding:14px 16px; }
+    table { width:100%; border-collapse: collapse; }
+    th, td { padding:10px 12px; border-bottom:1px solid #f0f0f0; text-align:left; }
+    th { background:#f9f9f9; }
+    .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .stat { padding:12px 14px; border:1px solid #e8e8e8; border-radius:12px; background:#fff; }
+    a.btn { display:inline-block;background:#0b5fff;color:#fff;padding:10px 14px;border-radius:8px;text-decoration:none }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Detailed Report: Screen Width Distribution</h1>
+    <div class="muted">Data source: <code>/api/static</code> → <code>screen_width</code> (pixels)</div>
+    <p class="muted">Guiding question: <em>“What screen widths do my users have, and which responsive breakpoints should I prioritize?”</em></p>
+    <p><a class="btn" href="/reporting.html">← Back to Dashboard</a></p>
+  </header>
+
+  <!-- Written discussion -->
+  <section class="card pad" id="writeup">
+    <h2 style="margin-top:0">Discussion</h2>
+    <p id="summary-text">Loading…</p>
+  </section>
+
+  <!-- Chart -->
+  <section style="margin-top:18px">
+    <h2 style="margin: 16px 0 8px; padding: 0 12px">Distribution by Responsive Buckets</h2>
+    <div id="sw-bar" class="card chart"></div>
+  </section>
+
+  <!-- Grid: summary stats + bucket table -->
+  <section style="margin-top:18px">
+    <h2 style="margin: 16px 0 8px; padding: 0 12px">Summary & Bucket Table</h2>
+    <div class="grid">
+      <div class="stat">
+        <table id="stats-grid">
+          <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="stat" style="overflow:auto">
+        <table id="bucket-grid">
+          <thead><tr><th>Bucket</th><th>Count</th><th>Percent</th></tr></thead>
+          <tbody></tbody>
+          <tfoot><tr><td>Total</td><td id="bucket-total">0</td><td>100%</td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    (async function () {
+      const resp = await fetch('https://rshelopal.site/api/static');
+      if (!resp.ok) throw new Error('Failed to load /api/static');
+      const rows = await resp.json();
+
+      // Pull numeric screen widths
+      const widths = rows
+        .map(r => Number(r.screen_width))
+        .filter(n => Number.isFinite(n) && n > 0);
+
+      const N = widths.length;
+      if (N === 0) {
+        document.getElementById('summary-text').textContent =
+          'No screen width data available yet.';
+        zingchart.render({
+          id: 'sw-bar',
+          data: { type: 'bar', title: { text: 'No data' }, series:[{ values: [] }] },
+          height: '100%', width: '100%'
+        });
+        return;
+      }
+
+      // Sort for stats
+      widths.sort((a,b)=>a-b);
+
+      // Responsive buckets (Bootstrap-like)
+      const buckets = [
+        { label: '<576',      lo: 0,    hi: 576   },
+        { label: '576–767',   lo: 576,  hi: 768   },
+        { label: '768–991',   lo: 768,  hi: 992   },
+        { label: '992–1199',  lo: 992,  hi: 1200  },
+        { label: '1200–1439', lo: 1200, hi: 1440  },
+        { label: '1440–1919', lo: 1440, hi: 1920  },
+        { label: '≥1920',     lo: 1920, hi: Infinity }
+      ];
+
+      // Count per bucket
+      const counts = new Array(buckets.length).fill(0);
+      for (const w of widths) {
+        const idx = buckets.findIndex(b => w >= b.lo && w < b.hi);
+        counts[idx === -1 ? buckets.length - 1 : idx] += 1;
+      }
+
+      // Stats
+      const avg = widths.reduce((s,v)=>s+v,0) / N;
+      const med = percentile(widths, 50);
+      const p75 = percentile(widths, 75);
+      const p90 = percentile(widths, 90);
+      const min = widths[0];
+      const max = widths[widths.length - 1];
+
+      // Dominant bucket
+      const maxCount = Math.max(...counts);
+      const topIdx = counts.findIndex(c => c === maxCount);
+      const topBucket = buckets[topIdx].label;
+      const topPct = ((maxCount / N) * 100).toFixed(1);
+
+      // Render chart
+      zingchart.render({
+        id: 'sw-bar',
+        data: {
+          type: 'bar',
+          title: { text: 'Screen Widths (px) — Bucketed Distribution' },
+          scaleX: { labels: buckets.map(b => b.label), item: { fontSize: 10 } },
+          scaleY: { label: { text: 'Users' }, guide: { lineStyle: 'dotted' } },
+          plot: { tooltip: { text: '%kt: %v users' } },
+          series: [{ values: counts }]
+        },
+        height: '100%',
+        width: '100%'
+      });
+
+      // Fill summary stats grid
+      const statsBody = document.querySelector('#stats-grid tbody');
+      addRow(statsBody, 'Samples', N);
+      addRow(statsBody, 'Average (px)', Math.round(avg));
+      addRow(statsBody, 'Median (px)', Math.round(med));
+      addRow(statsBody, 'p75 (px)', Math.round(p75));
+      addRow(statsBody, 'p90 (px)', Math.round(p90));
+      addRow(statsBody, 'Min (px)', min);
+      addRow(statsBody, 'Max (px)', max);
+      addRow(statsBody, 'Top Bucket', `${topBucket} (${topPct}%)`);
+
+      // Fill bucket table
+      const bucketBody = document.querySelector('#bucket-grid tbody');
+      const totalCell = document.getElementById('bucket-total');
+      let running = 0;
+      buckets.forEach((b, i) => {
+        const c = counts[i];
+        running += c;
+        addRow(bucketBody, b.label, c, ((c/N)*100).toFixed(1) + '%');
+      });
+      totalCell.textContent = String(running);
+
+      // Write-up (answers the guiding question)
+      document.getElementById('summary-text').textContent =
+        `We analyzed ${N} sessions with valid screen widths. The most common range is `
+        + `${topBucket} (${topPct}% of users). The median width is ${Math.round(med)} px `
+        + `and 75% of users are at or below ${Math.round(p75)} px. `
+        + `This suggests prioritizing responsive breakpoints around ${topBucket} `
+        + `and ensuring layouts work well from ${buckets[0].label} up through ${buckets[buckets.length-1].label}.`;
+
+      // Helpers
+      function addRow(tbody, a, b, c) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = c === undefined ? `<td>${a}</td><td>${b}</td>` :
+                                         `<td>${a}</td><td>${b}</td><td>${c}</td>`;
+        tbody.appendChild(tr);
+      }
+      function percentile(sorted, p) {
+        const idx = (p/100)*(sorted.length-1);
+        const lo = Math.floor(idx), hi = Math.ceil(idx);
+        if (lo === hi) return sorted[lo];
+        const w = idx - lo;
+        return sorted[lo]*(1-w) + sorted[hi]*w;
+      }
+    })().catch(err => {
+      console.error(err);
+      document.getElementById('summary-text').textContent =
+        'Failed to load static data.';
+    });
+  </script>
+</body>
+</html>
