@@ -15,7 +15,7 @@
   <script>
     (async function () {
       // 1) Get all rows from your existing endpoint
-      const resp = await fetch('/api/static');
+      const resp = await fetch('rshelopal.site/api/static');
       if (!resp.ok) throw new Error('Failed to load /api/static');
       const rows = await resp.json();
 
