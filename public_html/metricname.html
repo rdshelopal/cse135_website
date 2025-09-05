@@ -156,13 +156,26 @@
       });
       totalCell.textContent = String(running);
 
-      // Write-up (answers the guiding question)
-      document.getElementById('summary-text').textContent =
+      // Write-up (answers the guiding question) + expanded discussion
+      const summary = document.getElementById('summary-text');
+      summary.textContent =
         `We analyzed ${N} sessions with valid screen widths. The most common range is `
         + `${topBucket} (${topPct}% of users). The median width is ${Math.round(med)} px `
         + `and 75% of users are at or below ${Math.round(p75)} px. `
         + `This suggests prioritizing responsive breakpoints around ${topBucket} `
         + `and ensuring layouts work well from ${buckets[0].label} up through ${buckets[buckets.length-1].label}.`;
+
+      const extra = document.createElement('p');
+      extra.innerHTML =
+        `More importantly, this illustrates the value of <em>data-driven decision making</em>. `
+        + `It’s easy to “design by gut,” but our class emphasized that measured behavior guides better choices—`
+        + `and numbers rarely lie. These distributions tell us where users actually are, so we can align `
+        + `our responsive breakpoints with reality instead of assumptions. The same mindset applies on the `
+        + `server side: caching rules, database indexes, error budgets, and logging strategies should be shaped `
+        + `by observed patterns (like traffic mix and device sizes), not hunches. Measure → decide → improve. `
+        + `Using evidence from <code>static_data</code> keeps both front-end layout and back-end resources focused `
+        + `on what matters for our users.`;
+      summary.after(extra);
 
       // Helpers
       function addRow(tbody, a, b, c) {
