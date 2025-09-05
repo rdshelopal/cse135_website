@@ -128,6 +128,7 @@ app.get('/api/static', async (req, res) => {
     const [rows] = await pool.query('SELECT * FROM static_data');
     res.json(rows);
   } catch (err) {
+    console.error("Error on api/static", err);
     res.status(500).json({ error: 'Database error' });
   }
 });
@@ -150,6 +151,7 @@ app.post('/api/static', async (req, res) => {
     const [rows] = await pool.query('SELECT * FROM static_data WHERE id = ?', [result.insertId]);
     res.status(201).json(rows[0]);
   } catch (err) {
+    console.error("Write error on api static", err);
     res.status(500).json({ error: 'Database error' });
   }
 });
