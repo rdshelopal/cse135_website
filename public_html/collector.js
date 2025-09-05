@@ -129,6 +129,7 @@ window.addEventListener("load", async () => {
 
   // 1) static_data
   const staticRow = buildStaticRow(env);
+  console.log("Static row build: ", JSON.stringify(staticRow));
   postJSON("/api/static", staticRow);
 
   // 2) performance_data (only if you enable it and have the table/route)
