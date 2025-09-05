@@ -2,80 +2,82 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>User Agents Pie</title>
+  <title>Reporting Dashboard</title>
   <script src="https://cdn.zingchart.com/zingchart.min.js"></script>
   <style>
-    html, body { height:100%; margin:0; }
-    #ua-pie { height: 520px; width: 100%; }
+    html, body { margin:0; padding:0; font-family: sans-serif; }
+    h2 { text-align:center; margin: 1em 0 0.5em; }
+    .chart-container {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto 2em;
+      height: 400px;
+    }
   </style>
 </head>
 <body>
-  <div id="ua-pie"></div>
+  <h2>User Agents</h2>
+  <div id="ua-pie" class="chart-container"></div>
+
+  <h2>Languages</h2>
+  <div id="lang-pie" class="chart-container"></div>
+
+  <h2>JavaScript Enabled</h2>
+  <div id="js-pie" class="chart-container"></div>
 
   <script>
     (async function () {
-      // 1) Get all rows from your existing endpoint
       const resp = await fetch('https://rshelopal.site/api/static');
       if (!resp.ok) throw new Error('Failed to load /api/static');
       const rows = await resp.json();
 
-      // 2) Group by user_agent (exact string). Null/empty -> "Unknown"
-      const counts = new Map();
-      for (const r of rows) {
-        const ua = (r.user_agent && String(r.user_agent).trim()) || 'Unknown';
-        counts.set(ua, (counts.get(ua) || 0) + 1);
+      // Utility to build a pie config from counts
+      function makePieConfig(title, counts) {
+        const total = Array.from(counts.values()).reduce((a,b) => a+b, 0) || 1;
+        const series = Array.from(counts.entries()).map(([label, value]) => ({
+          text: label,
+          values: [value],
+          tooltip: { text: `%t: %v (${((value/total)*100).toFixed(1)}%)` }
+        }));
+        return {
+          type: 'pie',
+          title: { text: title },
+          legend: { draggable:true },
+          plot: {
+            valueBox: { text: '%npv%', placement: 'out', fontSize:'10px' }
+          },
+          series
+        };
       }
 
-      // Optional: keep chart readable by showing top N & grouping the rest
-      const TOP_N = 10; // change or remove this block to show every UA
-      const sorted = Array.from(counts.entries()).sort((a,b) => b[1] - a[1]);
-      const top = sorted.slice(0, TOP_N);
-      const restCount = sorted.slice(TOP_N).reduce((s, [,v]) => s + v, 0);
-      if (restCount > 0) top.push(['Other', restCount]);
+      // 1) User Agent
+      const uaCounts = new Map();
+      for (const r of rows) {
+        const ua = (r.user_agent && String(r.user_agent).trim()) || 'Unknown';
+        uaCounts.set(ua, (uaCounts.get(ua) || 0) + 1);
+      }
+      zingchart.render({ id:'ua-pie', data: makePieConfig('User Agents', uaCounts), height:'100%', width:'100%' });
 
-      const total = rows.length || 1;
+      // 2) Language
+      const langCounts = new Map();
+      for (const r of rows) {
+        const lang = (r.language && String(r.language).trim()) || 'Unknown';
+        langCounts.set(lang, (langCounts.get(lang) || 0) + 1);
+      }
+      zingchart.render({ id:'lang-pie', data: makePieConfig('Languages', langCounts), height:'100%', width:'100%' });
 
-      // 3) Build ZingChart series
-      const series = top.map(([label, value]) => ({
-        text: label,
-        values: [value],
-        // Tooltip shows count and percentage
-        tooltip: { text: `%t: %v (${((value/total)*100).toFixed(1)}%)` }
-      }));
+      // 3) JS Enabled
+      const jsCounts = new Map([['Enabled',0],['Disabled',0],['Unknown',0]]);
+      for (const r of rows) {
+        if (r.javascript_enabled === 1) jsCounts.set('Enabled', jsCounts.get('Enabled')+1);
+        else if (r.javascript_enabled === 0) jsCounts.set('Disabled', jsCounts.get('Disabled')+1);
+        else jsCounts.set('Unknown', jsCounts.get('Unknown')+1);
+      }
+      zingchart.render({ id:'js-pie', data: makePieConfig('JavaScript Enabled', jsCounts), height:'100%', width:'100%' });
 
-      // 4) Render the pie
-      const config = {
-        type: 'pie',
-        title: { text: 'User Agents (proportion of traffic)' },
-        legend: {
-          draggable: true,
-          align: 'right',
-          verticalAlign: 'middle',
-          layout: 'vertical',
-          borderWidth: '0'
-        },
-        plot: {
-          slice: 60,
-          valueBox: {
-            // show percentages on slices
-            text: '%npv%',
-            placement: 'out',
-            fontSize: '10px'
-          }
-        },
-        series
-      };
-
-      zingchart.render({
-        id: 'ua-pie',
-        data: config,
-        height: '520px',
-        width: '100%'
-      });
     })().catch(err => {
       console.error(err);
-      document.getElementById('ua-pie').textContent =
-        'Failed to load data for chart.';
+      document.body.innerHTML = '<p style="color:red;text-align:center">Failed to load reporting data.</p>';
     });
   </script>
 </body>
