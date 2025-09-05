@@ -100,86 +100,86 @@ app.post('/api/performance', (req, res) => {
   });
 });
 */
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const mysql = require('mysql2/promise');
 
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-// app.js files
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
-var jsonServer = require('json-server');
-var fs = require('fs'); // ⬅ needed to read/write db.json
-var server = jsonServer.create();
-
-// Set default middlewares (logger, static, cors and no-cache)
-server.use(jsonServer.defaults());
-server.use(jsonServer.bodyParser); // Needed to read POST/PUT body
-
-// Helper functions to read and write db.json
-function readDB() {
-  const data = fs.readFileSync('db.json', 'utf8');
-  return JSON.parse(data);
-}
-
-function writeDB(data) {
-  fs.writeFileSync('db.json', JSON.stringify(data, null, 2));
-}
-
-// ✅ GET /api/static → Return all events
-server.get('/api/static', (req, res) => {
-  const db = readDB();
-  res.json(db.events);
+// MySQL pool
+const pool = mysql.createPool({
+  host: process.env.MYSQL_HOST,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DB,
+  waitForConnections: true,
+  connectionLimit: 10,
 });
 
-// ✅ GET /api/static/:id → Return one event by ID
-server.get('/api/static/:id', (req, res) => {
-  const db = readDB();
-  const id = parseInt(req.params.id);
-  const event = db.events.find(e => e.id === id);
-  if (event) res.json(event);
-  else res.status(404).json({ error: 'Event not found' });
-});
-
-// ✅ POST /api/static → Add a new event
-server.post('/api/static', (req, res) => {
-  const db = readDB();
-  const newId = db.events.length ? db.events[db.events.length - 1].id + 1 : 1;
-  const newEvent = { id: newId, ...req.body };
-  db.events.push(newEvent);
-  writeDB(db);
-  res.status(201).json(newEvent);
-});
-
-// ✅ PUT /api/static/:id → Update an event by ID
-server.put('/api/static/:id', (req, res) => {
-  const db = readDB();
-  const id = parseInt(req.params.id);
-  const index = db.events.findIndex(e => e.id === id);
-  if (index !== -1) {
-    db.events[index] = { id, ...req.body };
-    writeDB(db);
-    res.json(db.events[index]);
-  } else {
-    res.status(404).json({ error: 'Event not found' });
+// GET all
+app.get('/api/static', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM static_data');
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Database error' });
   }
 });
 
-// ✅ DELETE /api/static/:id → Delete an event by ID
-server.delete('/api/static/:id', (req, res) => {
-  const db = readDB();
-  const id = parseInt(req.params.id);
-  const filtered = db.events.filter(e => e.id !== id);
-  if (filtered.length !== db.events.length) {
-    db.events = filtered;
-    writeDB(db);
-    res.status(204).end(); // No content
-  } else {
-    res.status(404).json({ error: 'Event not found' });
+// GET by id
+app.get('/api/static/:id', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM static_data WHERE id = ?', [req.params.id]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Database error' });
   }
 });
 
-// Use json-server default routes too (for /posts and /events)
-var router = jsonServer.router('db.json');
-server.use(router);
+// POST new
+app.post('/api/static', async (req, res) => {
+  try {
+    const [result] = await pool.query('INSERT INTO static_data SET ?', req.body);
+    const [rows] = await pool.query('SELECT * FROM static_data WHERE id = ?', [result.insertId]);
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Database error' });
+  }
+});
 
-// Start the server
-server.listen(3000, () => {
-  console.log('Server running at http://localhost:3000');
+// PUT update
+app.put('/api/static/:id', async (req, res) => {
+  try {
+    const [result] = await pool.query('UPDATE static_data SET ? WHERE id = ?', [req.body, req.params.id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Not found' });
+    const [rows] = await pool.query('SELECT * FROM static_data WHERE id = ?', [req.params.id]);
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
+// DELETE
+app.delete('/api/static/:id', async (req, res) => {
+  try {
+    const [result] = await pool.query('DELETE FROM static_data WHERE id = ?', [req.params.id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Not found' });
+    res.status(204).end();
+  } catch (err) {
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
+// health check
+app.get('/health', (_req, res) => res.json({ ok: true }));
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
